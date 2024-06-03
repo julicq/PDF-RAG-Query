@@ -33,21 +33,28 @@ def add_to_chroma(chunks: list[Document]):
     # Add or update docs
     existing_items = db.get(include=[])
     existing_ids = set(existing_items["ids"])
+    existing_hashes = {doc.metadata.get("hash") for doc in existing_items["documents"] if "hash" in doc.metadata}
     print(f"Number of existing documents in DB: {len(existing_ids)}")
 
     # Only add docs that are not in DB
     new_chunks = []
     for chunk in chunks_with_ids:
-        if chunk.metadata["id"] not in existing_ids:
+        if chunk.metadata["hash"] not in existing_hashes:
             new_chunks.append(chunk)
     
     if len(new_chunks):
         print(f"Adding new documents: {len(new_chunks)}")
-        new_chunk_ids = [chunk.metadata["id"] for chunk in new_chunks]
-        db.add_documents(new_chunks, ids=new_chunk_ids)
+        
+        batch_size = 100  # Adjust batch size as needed
+        for i in range(0, len(new_chunks), batch_size):
+            batch = new_chunks[i:i + batch_size]
+            new_chunk_ids = [chunk.metadata["id"] for chunk in batch]
+            db.add_documents(batch, ids=new_chunk_ids)
+        
         db.persist()
     else:
         print("No new documents to add")
+
 
 def calculate_chunk_ids(chunks):
     # This will create id's
@@ -76,6 +83,8 @@ def calculate_chunk_ids(chunks):
     return chunks
 
 def clear_database():
+    from langchain_community.vectorstores import Chroma
+    
     # Ensure Chroma instance is closed
     try:
         db = Chroma(persist_directory=CHROMA_PATH)
@@ -85,3 +94,9 @@ def clear_database():
 
     if os.path.exists(CHROMA_PATH):
         shutil.rmtree(CHROMA_PATH)
+
+if __name__ == "__main__":
+    # Example usage
+    documents = load_documents()
+    chunks = split_documents(documents)
+    add_to_chroma(chunks)
