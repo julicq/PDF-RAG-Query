@@ -11,7 +11,13 @@ DATA_PATH = "data"
 
 def load_documents():
     document_loader = PyPDFDirectoryLoader(DATA_PATH)
-    return document_loader.load()
+    documents = document_loader.load()
+    
+    for document in documents:
+        # Ensure the source metadata is the correct relative path
+        document.metadata["source"] = os.path.basename(document.metadata["source"])
+    
+    return documents
 
 def split_documents(documents: list[Document]):
     text_splitter = RecursiveCharacterTextSplitter(
