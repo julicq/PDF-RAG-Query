@@ -63,5 +63,5 @@ This project implements a Streamlit app that allows users to upload PDF files, a
 - chroma/: Directory where the Chroma database is stored.
 
 ## Acknoledgements
-    -[Langchain](https://github.com/langchain-ai/langchain)
-    -[Streamlit](https://www.streamlit.io/)
+- [Langchain](https://github.com/langchain-ai/langchain)
+- [Streamlit](https://www.streamlit.io/)
