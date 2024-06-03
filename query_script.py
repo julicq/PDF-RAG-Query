@@ -1,8 +1,6 @@
-import argparse
 from langchain_community.vectorstores import Chroma
 from langchain.prompts import ChatPromptTemplate
 from langchain_community.llms.ollama import Ollama
-
 from get_embedding_function import get_embedding_function
 
 CHROMA_PATH = "chroma"
@@ -16,14 +14,6 @@ Answer the question based only on the following context:
 
 Answer the question based on the above context: {question}
 """
-
-def main():
-    # Create CLI
-    parser = argparse.ArgumentParser()
-    parser.add_argument("query_text", type=str, help="The query text")
-    args = parser.parse_args()
-    query_text = args.query_text
-    query_rag(query_text)
 
 def query_rag(query_text: str):
     # Prepare DB
@@ -41,9 +31,6 @@ def query_rag(query_text: str):
     response_text = model.invoke(prompt)
 
     sources = [doc.metadata.get("id", None) for doc, _score in results]
-    formatted_response = f"Response: {response_text}\nSources: {sources}"
+    formatted_response = f"{response_text}\nSources: {sources}"
     print(formatted_response)
-    return response_text
-
-if __name__ == "__main__":
-    main()
+    return formatted_response

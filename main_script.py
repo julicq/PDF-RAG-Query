@@ -1,30 +1,13 @@
-import argparse
 import os
 import shutil
+from get_embedding_function import get_embedding_function
 from langchain_community.document_loaders import PyPDFDirectoryLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain.schema.document import Document
 from langchain_community.vectorstores import Chroma
-from get_embedding_function import get_embedding_function
 
 CHROMA_PATH = "chroma"
 DATA_PATH = "data"
-
-def main():
-
-    # Check if DB should be cleared (using --clear flag)
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--reset", action="store_true", help="Reset the db")
-    args = parser.parse_args()
-    if args.reset:
-        print("Clearing DB")
-        clear_database()
-    
-    # Create the data storage
-    documents = load_documents()
-    chunks = split_documents(documents)
-    add_to_chroma(chunks)
-
 
 def load_documents():
     document_loader = PyPDFDirectoryLoader(DATA_PATH)
@@ -60,17 +43,11 @@ def add_to_chroma(chunks: list[Document]):
     
     if len(new_chunks):
         print(f"Adding new documents: {len(new_chunks)}")
-        
-        batch_size = 100  # Adjust batch size as needed
-        for i in range(0, len(new_chunks), batch_size):
-            batch = new_chunks[i:i + batch_size]
-            new_chunk_ids = [chunk.metadata["id"] for chunk in batch]
-            db.add_documents(batch, ids=new_chunk_ids)
-        
+        new_chunk_ids = [chunk.metadata["id"] for chunk in new_chunks]
+        db.add_documents(new_chunks, ids=new_chunk_ids)
         db.persist()
     else:
         print("No new documents to add")
-
 
 def calculate_chunk_ids(chunks):
     # This will create id's
@@ -99,8 +76,12 @@ def calculate_chunk_ids(chunks):
     return chunks
 
 def clear_database():
+    # Ensure Chroma instance is closed
+    try:
+        db = Chroma(persist_directory=CHROMA_PATH)
+        db.close()
+    except Exception as e:
+        print(f"Error closing the database: {e}")
+
     if os.path.exists(CHROMA_PATH):
         shutil.rmtree(CHROMA_PATH)
-
-if __name__ == "__main__":
-    main()
