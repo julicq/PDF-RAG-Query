@@ -12,7 +12,7 @@ Answer the question based only on the following context:
 
 ---
 
-Answer the question based on the above context: {question}
+Answer the question based on the above context: {question} using Language you've been asked with
 """
 
 def query_rag(query_text: str):
@@ -27,7 +27,7 @@ def query_rag(query_text: str):
     prompt_template = ChatPromptTemplate.from_template(PROMPT_TEMPLATE)
     prompt = prompt_template.format(context=context_text, question=query_text)
 
-    model = Ollama(model="llama3")
+    model = Ollama(model="llama3:8b-instruct-q8_0")
     response_text = model.invoke(prompt)
 
     sources = [doc.metadata.get("id", None) for doc, _score in results]

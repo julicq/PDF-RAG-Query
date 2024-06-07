@@ -1,13 +1,22 @@
 import streamlit as st
 import os
-from tempfile import NamedTemporaryFile
-from get_embedding_function import get_embedding_function
 from main_script import load_documents, split_documents, add_to_chroma, clear_database
 from query_script import query_rag
 
 # Define paths
 CHROMA_PATH = "chroma"
 DATA_PATH = "data"
+
+def save_uploaded_file(uploaded_file):
+    # Ensure the DATA_PATH directory exists
+    if not os.path.exists(DATA_PATH):
+        os.makedirs(DATA_PATH)
+
+    # Save file with original name
+    save_path = os.path.join(DATA_PATH, uploaded_file.name)
+    with open(save_path, "wb") as f:
+        f.write(uploaded_file.read())
+    return save_path
 
 # Streamlit app
 st.title("PDF Document Search with LangChain")
@@ -16,13 +25,9 @@ st.title("PDF Document Search with LangChain")
 st.header("Upload PDFs")
 uploaded_files = st.file_uploader("Choose PDF files", type="pdf", accept_multiple_files=True)
 if uploaded_files:
-    if not os.path.exists(DATA_PATH):
-        os.makedirs(DATA_PATH)
-    
     for uploaded_file in uploaded_files:
-        with NamedTemporaryFile(delete=False, dir=DATA_PATH, suffix=".pdf") as tmp_file:
-            tmp_file.write(uploaded_file.read())
-        st.write(f"Uploaded {uploaded_file.name}")
+        save_path = save_uploaded_file(uploaded_file)
+        st.write(f"Uploaded {uploaded_file.name} to {save_path}")
 
     st.success("PDFs uploaded successfully!")
 
@@ -31,12 +36,22 @@ if st.button("Reset Database"):
     clear_database()
     st.success("Database reset successfully!")
 
-# Add PDFs to the database
+# Add PDFs to the database with progress bar
 if st.button("Add PDFs to Database"):
     documents = load_documents()
     chunks = split_documents(documents)
-    add_to_chroma(chunks)
-    st.success("PDFs added to the database successfully!")
+    
+    if chunks:
+        progress_bar = st.progress(0)
+        total_chunks = len(chunks)
+        
+        for i, chunk in enumerate(chunks):
+            add_to_chroma([chunk], use_tqdm=False)  # Add one chunk at a time without tqdm
+            progress_bar.progress((i + 1) / total_chunks)
+        
+        st.success("PDFs added to the database successfully!")
+    else:
+        st.error("No chunks to add to the database.")
 
 # Query section
 st.header("Query the PDF Database")
